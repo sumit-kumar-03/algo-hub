@@ -16,6 +16,9 @@ Usage:
   python3 run_tests.py elements_of_programming_interviews/05_arrays -v
   python3 run_tests.py -v                       # list every file with its status
   python3 run_tests.py --show-failures          # print error output for FAIL/TIMEOUT
+  python3 run_tests.py fundamentals --logs       # print the full output of every file
+
+Running a single file always prints its full output.
 
 Exits with status 1 if any file is FAIL or TIMEOUT, so TODO stubs never break a run.
 """
@@ -64,24 +67,40 @@ def sort_key(path):
     return key
 
 
+def _decode(data):
+    """TimeoutExpired may hold bytes even in text mode."""
+    if data is None:
+        return ""
+    return data.decode("utf-8", "replace") if isinstance(data, bytes) else data
+
+
 def run_file(path, timeout):
-    """Runs one problem file and classifies the outcome."""
+    """Runs one problem file and classifies the outcome. Returns its full output."""
     try:
         result = subprocess.run(
-            [sys.executable, "-B", str(path)],  # -B: don't write __pycache__
+            # -B: don't write __pycache__; -u: unbuffered, so output printed
+            # before a timeout is still captured
+            [sys.executable, "-B", "-u", str(path)],
             capture_output=True,
             text=True,
             timeout=timeout,
             cwd=path.parent,
         )
-    except subprocess.TimeoutExpired:
-        return path, "TIMEOUT", f"Timed out after {timeout}s"
+    except subprocess.TimeoutExpired as exc:
+        output = (_decode(exc.stdout) + _decode(exc.stderr)).rstrip()
+        note = f"[Timed out after {timeout}s]"
+        return path, "TIMEOUT", f"{output}\n{note}" if output else note
 
+    output = (result.stdout + result.stderr).rstrip()
     if PASS_MARKER in result.stdout and result.returncode == 0:
-        return path, "PASS", ""
+        return path, "PASS", output
     status = "TODO" if TODO_MARKER in path.read_text(encoding="utf-8") else "FAIL"
-    output = (result.stdout + result.stderr).strip().splitlines()
-    return path, status, "\n".join(output[-8:])
+    return path, status, output
+
+
+def tail(output, lines=8):
+    """Last few lines of a file's output, for the failure summary."""
+    return "\n".join(output.splitlines()[-lines:])
 
 
 def group_name(path):
@@ -95,6 +114,10 @@ def main():
     parser.add_argument("paths", nargs="*", help="folders or files to run (relative to repo root)")
     parser.add_argument("-v", "--verbose", action="store_true", help="list every file with its status")
     parser.add_argument("--show-failures", action="store_true", help="print output for FAIL/TIMEOUT files")
+    parser.add_argument(
+        "-l", "--logs", action="store_true",
+        help="print the full output of every file (always on for a single file)",
+    )
     parser.add_argument("--timeout", type=float, default=30, help="seconds per file (default: 30)")
     parser.add_argument("-j", "--jobs", type=int, default=8, help="files to run in parallel (default: 8)")
     args = parser.parse_args()
@@ -105,6 +128,12 @@ def main():
 
     with ThreadPoolExecutor(max_workers=args.jobs) as pool:
         results = list(pool.map(lambda f: run_file(f, args.timeout), files))
+
+    if args.logs or len(files) == 1:
+        for path, status, output in results:
+            print(f"===== {ICONS[status]} {status}  {path.relative_to(ROOT)} =====")
+            print(output if output else "(no output)")
+            print()
 
     by_group = defaultdict(list)
     for path, status, output in results:
@@ -132,7 +161,7 @@ def main():
     if problems and args.show_failures:
         print("\nFailures:")
         for path, status, output in problems:
-            print(f"\n{ICONS[status]} {path.relative_to(ROOT)}\n{output}")
+            print(f"\n{ICONS[status]} {path.relative_to(ROOT)}\n{tail(output)}")
     elif problems:
         print("\nNeeds attention: " + ", ".join(str(p.relative_to(ROOT)) for p, _, _ in problems))
         print("Run with --show-failures for details.")

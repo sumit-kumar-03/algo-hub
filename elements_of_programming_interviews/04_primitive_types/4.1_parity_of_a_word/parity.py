@@ -45,7 +45,30 @@ class Solution:
         Space Complexity: O(1)
         """
         # TODO: Implement parity
-        pass
+       
+        parity = 0
+
+        # # Implement brute-force O(n)
+        # while x:
+        #     parity = parity ^ x & 1
+        #     x >>= 1
+
+        # # Implement O(k)
+        # while x:
+        #     parity = parity ^ 1
+        #     x = x & (x-1) 
+
+        # Implement O(log(n))
+        x = x ^ x >> 32
+        x = x ^ x >> 16
+        x = x ^ x >> 8
+        x = x ^ x >> 4
+        x = x ^ x >> 2
+        x = x ^ x >> 1
+
+        parity = x & 1
+
+        return parity
 
 
 def test_parity():

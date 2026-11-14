@@ -47,7 +47,10 @@ class Solution:
         Space Complexity: O(1)
         """
         # TODO: Implement right propagation of the rightmost set bit
-        pass
+        if x > 0:
+            val = x|(x-1)
+            return val
+        return x
 
     def mod_power_of_two(self, x: int, power: int) -> int:
         """
@@ -64,7 +67,8 @@ class Solution:
         Space Complexity: O(1)
         """
         # TODO: Implement x mod a power of two using a bit mask
-        pass
+        val = x & (power - 1)
+        return val
 
     def is_power_of_two(self, x: int) -> bool:
         """
@@ -80,7 +84,9 @@ class Solution:
         Space Complexity: O(1)
         """
         # TODO: Implement power-of-two check
-        pass
+        if x > 0 and (x & x - 1 == 0):
+            return True
+        return False
 
 
 def test_bit_tricks():

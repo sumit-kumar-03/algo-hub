@@ -49,7 +49,10 @@ python3 run_tests.py                                         # whole repo
 python3 run_tests.py elements_of_programming_interviews/05_arrays
 python3 run_tests.py fundamentals -v                         # list each file
 python3 run_tests.py --show-failures                         # show errors for failing files
+python3 run_tests.py fundamentals --logs                     # print each file's full output
 ```
+
+Running a single file through `run_tests.py` always prints its full output.
 
 Each file is reported as one of:
 
