@@ -49,7 +49,21 @@ class Solution:
         Space Complexity: O(1)
         """
         # TODO: Implement x^y with repeated squaring
-        pass
+        
+        power, result, val = y, 1.0, x
+
+        if power < 0:
+            power, val = -power, 1/val
+
+        while power:
+
+            if power & 1:
+                result = result * val
+
+            val = val * val
+            power = power >> 1
+
+        return result
 
 
 def test_power():
